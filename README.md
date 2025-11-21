@@ -1,4 +1,4 @@
-# Twitter Bot Detection (2025 Refresh)
+# Twitter Bot Detection
 
 End-to-end notebook project that detects automated Twitter accounts by blending exploratory data analysis, description-level NLP, and gradient-boosted tree models on structured metadata.
 
