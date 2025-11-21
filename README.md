@@ -1,62 +1,83 @@
-# Twitter Bot Detection
+# Twitter Bot Detection (2025 Refresh)
 
-Detect automated Twitter accounts by combining exploratory analysis, text analytics, and machine learning models (TF‑IDF + Linear SVM + XGBoost). The workflow lives in the single notebook `Twitter_Bot_Detection.ipynb`.
+End-to-end notebook project that detects automated Twitter accounts by blending exploratory data analysis, description-level NLP, and gradient-boosted tree models on structured metadata.
 
-## Dataset
+## Highlights
 
-- `data/twitter_human_bots_dataset.csv` – tweets and account level metadata with the binary target `account_type` (`bot` or `human`).
-- The notebook filters to English tweets (`lang == "en"`), cleans redundant columns (IDs, image URLs, locations), and renames `default_profile` into `default_background_image` to avoid ambiguity.
-- Numeric signals: follower/friend counts, engagement stats, account age, tweet velocity, etc.
-- Boolean signals: default imagery, geo settings, verification flags.
-- Text signal: account description (`description`) used for TF‑IDF features.
+- Single Jupyter notebook (`Twitter_Bot_Detection.ipynb`) that walks from raw CSV to trained classifier and evaluation plots.
+- Hybrid feature space: TF‑IDF embeddings of user descriptions + engineered account-level signals.
+- Modeling stack couples a calibrated Linear SVM for text scoring with XGBoost for the final binary decision.
+- Production-minded touches: language filtering, log transforms on heavy-tailed counts, class-imbalance handling, and feature-importance introspection.
 
-> The dataset is downloaded from [Twitter Human Bots Dataset](https://huggingface.co/datasets/airt-ml/twitter-human-bots) and place it under `data/`.
+## Dataset & Features
+
+- Source: [Twitter Human Bots Dataset](https://huggingface.co/datasets/airt-ml/twitter-human-bots). Download `twitter_human_bots_dataset.csv` into `data/`.
+- Target: `account_type` (`bot` vs `human`).
+- Filtering: keep only English tweets (`lang == "en"`), drop redundant identifiers and image URLs, rename `default_profile` → `default_background_image`.
+- Numeric features: follower/friend/favorite counts, tweets per day, account age.
+- Boolean features: default imagery flags, geo enabled, verified.
+- Text feature: profile `description`, vectorized with TF‑IDF (stop words removed, max 100 features for the current run).
 
 ## Repository Layout
 
 ```
 .
-├── Twitter_Bot_Detection.ipynb   # Full workflow: EDA → modeling → evaluation
+├── Twitter_Bot_Detection.ipynb   # Complete workflow
 ├── data/
 │   └── twitter_human_bots_dataset.csv
-└── image/                        # Plots exported from the notebook (optional)
+├── image/                        # Optional exported charts
+└── requirements.txt              # Reproducible environment spec
 ```
 
-## Requirements
-
-- Python 3.9+ (tested on 3.11)
-- pip
-- Packages used in the notebook: `pandas`, `numpy`, `matplotlib`, `seaborn`, `scipy`, `scikit-learn`, `xgboost`, `jupyter`
-
-Create a virtual environment and install dependencies:
+## Environment Setup
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install pandas numpy matplotlib seaborn scipy scikit-learn xgboost jupyter
+pip install -r requirements.txt
 ```
 
-## How to Run
+> Python 3.9+ works; the notebook was last executed with Python 3.11. Dependencies include pandas, numpy, scipy, scikit-learn, seaborn, matplotlib, and xgboost (full list lives in `requirements.txt`).
 
-1. Activate your environment (see above).
-2. Launch Jupyter:
+## Running the Notebook
+
+1. Place the dataset under `data/`.
+2. Activate your virtual environment.
+3. Launch Jupyter:
    ```bash
    jupyter notebook Twitter_Bot_Detection.ipynb
    ```
-3. Execute cells sequentially. Key stages you will see:
-   - **EDA** – schema summary, missing value scan, class balance plot, numeric/boolean/text profiling, TF‑IDF top terms by class.
-   - **Feature Engineering** – log-transform skewed count features, derive description statistics, encode booleans, TF‑IDF for text.
-   - **Modeling** – train a Linear SVM (wrapped in `CalibratedClassifierCV`) on description text; feed its probabilities plus numeric/boolean features into an XGBoost classifier with `scale_pos_weight` to balance classes.
-   - **Evaluation** – classification report, confusion matrix, precision‑recall curve inputs, and XGBoost feature importance.
+4. Run the cells sequentially. The notebook resets random seeds for reproducibility; feel free to re-run individual sections when experimenting.
 
-All figures display inline; re-run sections individually if you tweak feature lists or hyperparameters.
+### Notebook Roadmap
+
+1. **EDA** – schema summary, missing-data audit, class distribution, histograms/boxplots, boolean odds ratios, TF‑IDF top terms per label.
+2. **Feature Engineering** – log1p transforms on skewed counts, boolean consolidation, description statistics (length, hashtags, mentions), TF‑IDF vectorization.
+3. **Modeling**  
+   - Train `CalibratedClassifierCV(LinearSVC)` on text to obtain `P(bot | description)`.  
+   - Append this probability to structured features and train an `XGBClassifier` with `scale_pos_weight` to address class imbalance.
+4. **Evaluation** – classification report, confusion matrix, precision/recall curves, and XGBoost feature-importance plots.
+
+## Typical Outputs
+
+- Precision/recall/F1 per class plus macro/micro averages.
+- Confusion matrix highlighting false bot alarms vs missed bots.
+- Feature importances showing which account statistics or TF‑IDF signals drive decisions.
+- Saved charts (optional) under `image/` for portfolio or presentation use.
+
+## What I Focused On
+
+- Keeping the exploratory phase and modeling logic in the same artifact for transparency.
+- Demonstrating how to merge text and tabular signals without a heavyweight pipeline framework.
+- Providing a reproducible environment via `requirements.txt` and deterministic seeds.
 
 ## Extending the Project
 
-- Add a formal train/test split per time period to detect temporal drift.
-- Promote the notebook pipeline to a Python module or script for batch scoring.
-- Track experiments with MLflow or Weights & Biases for easier comparison.
-- Package requirements into `requirements.txt` and/or Conda environment for reproducibility.
+- Build time-based train/test splits to check temporal drift.
+- Promote the notebook into a Python module or CLI for batch scoring.
+- Track experiments with MLflow or Weights & Biases.
+- Swap in transformers (e.g., `sentence-transformers`) for richer description embeddings.
+- Automate linting/testing via pre-commit hooks or CI.
 
-Contributions via issues or pull requests are welcome—share ideas for new features, additional datasets, or better evaluation metrics.
+Contributions and suggestions are welcome! Open an issue or PR if you experiment with new features, datasets, or evaluation metrics.
